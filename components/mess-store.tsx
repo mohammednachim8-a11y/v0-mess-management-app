@@ -9,16 +9,27 @@ import {
   type ShoppingItem,
   type Notice,
   type Expense,
+  type ExpenseKind,
+  type Deposit,
   type Role,
   initialMembers,
   initialMealData,
   initialShopping,
   initialNotices,
   initialExpenses,
+  initialDeposits,
   emptyMonth,
 } from "@/lib/mess-data"
 
 type MealSlot = "morning" | "night"
+
+interface NewExpense {
+  desc: string
+  amount: number
+  kind: ExpenseKind
+  buyerId?: number
+  category?: string
+}
 
 interface MessStore {
   currentUser: AuthUser | null
@@ -27,6 +38,7 @@ interface MessStore {
 
   members: Member[]
   addMember: (name: string, room: string, role: Role) => void
+  transferManager: (newManagerId: number) => void
 
   mealData: Record<number, MemberMeals>
   toggleMeal: (memberId: number, dayIdx: number, slot: MealSlot) => void
@@ -42,7 +54,10 @@ interface MessStore {
   removeNotice: (id: number) => void
 
   expenses: Expense[]
-  addExpense: (desc: string, amount: number) => void
+  addExpense: (e: NewExpense) => void
+
+  deposits: Deposit[]
+  addDeposit: (memberId: number, amount: number, date: string) => void
 
   toast: string | null
   showToast: (msg: string) => void
@@ -57,6 +72,7 @@ export function MessProvider({ children }: { children: ReactNode }) {
   const [shopping, setShopping] = useState<ShoppingItem[]>(initialShopping)
   const [notices, setNotices] = useState<Notice[]>(initialNotices)
   const [expenses, setExpenses] = useState<Expense[]>(initialExpenses)
+  const [deposits, setDeposits] = useState<Deposit[]>(initialDeposits)
   const [toast, setToast] = useState<string | null>(null)
 
   const showToast = (msg: string) => {
@@ -86,6 +102,23 @@ export function MessProvider({ children }: { children: ReactNode }) {
           return [...prev, { id, name, room: room || "TBD", join: "June 2025", role, active: true }]
         })
         showToast("Member added")
+      },
+      transferManager: (newManagerId) => {
+        setMembers((prev) =>
+          prev.map((m) => {
+            if (m.id === newManagerId) return { ...m, role: "manager" as Role }
+            if (m.role === "manager") return { ...m, role: "member" as Role }
+            return m
+          }),
+        )
+        // Demote current user in session if they handed off the role.
+        setCurrentUser((u) => {
+          if (u && u.role === "manager" && u.memberId !== newManagerId) {
+            return { ...u, role: "member" }
+          }
+          return u
+        })
+        showToast("Manager role transferred")
       },
 
       mealData,
@@ -127,16 +160,33 @@ export function MessProvider({ children }: { children: ReactNode }) {
       },
 
       expenses,
-      addExpense: (desc, amount) => {
-        setExpenses((prev) => [{ id: Date.now(), desc, amount, date: "Today" }, ...prev])
-        showToast(`Expense added: ৳${amount.toLocaleString()}`)
+      addExpense: (e) => {
+        setExpenses((prev) => [
+          {
+            id: Date.now(),
+            desc: e.desc,
+            amount: e.amount,
+            date: "Today",
+            kind: e.kind,
+            buyerId: e.buyerId,
+            category: e.category,
+          },
+          ...prev,
+        ])
+        showToast(`${e.kind === "bill" ? "Bill" : "Grocery"} added: Tk ${e.amount.toLocaleString()}`)
+      },
+
+      deposits,
+      addDeposit: (memberId, amount, date) => {
+        setDeposits((prev) => [{ id: Date.now(), memberId, amount, date: date || "Today" }, ...prev])
+        showToast(`Deposit added: Tk ${amount.toLocaleString()}`)
       },
 
       toast,
       showToast,
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUser, members, mealData, shopping, notices, expenses, toast])
+  }, [currentUser, members, mealData, shopping, notices, expenses, deposits, toast])
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }

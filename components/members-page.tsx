@@ -1,14 +1,15 @@
 "use client"
 
 import { useState } from "react"
-import { Plus } from "lucide-react"
+import { Plus, Crown } from "lucide-react"
 import { useMess } from "@/components/mess-store"
 import { Section, Badge, PrimaryButton, Modal, Field, inputClass } from "@/components/ui-bits"
 import type { Role } from "@/lib/mess-data"
 
 export function MembersPage() {
-  const { members, addMember, currentUser } = useMess()
+  const { members, addMember, transferManager, currentUser } = useMess()
   const [open, setOpen] = useState(false)
+  const [transferId, setTransferId] = useState<number | null>(null)
   const [name, setName] = useState("")
   const [room, setRoom] = useState("")
   const [role, setRole] = useState<Role>("member")
@@ -21,6 +22,12 @@ export function MembersPage() {
     setRoom("")
     setRole("member")
     setOpen(false)
+  }
+
+  const transferTarget = members.find((m) => m.id === transferId)
+  const confirmTransfer = () => {
+    if (transferId != null) transferManager(transferId)
+    setTransferId(null)
   }
 
   return (
@@ -45,6 +52,7 @@ export function MembersPage() {
                 <th className="px-3 py-3 font-medium">Joined</th>
                 <th className="px-3 py-3 font-medium">Role</th>
                 <th className="px-3 py-3 font-medium">Status</th>
+                {isManager && <th className="px-3 py-3 font-medium">Action</th>}
               </tr>
             </thead>
             <tbody>
@@ -72,6 +80,21 @@ export function MembersPage() {
                       {m.active ? "Active" : "Inactive"}
                     </Badge>
                   </td>
+                  {isManager && (
+                    <td className="px-3 py-3">
+                      {m.role === "manager" ? (
+                        <span className="text-xs text-muted-foreground">Current manager</span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setTransferId(m.id)}
+                          className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2.5 py-1 text-xs font-medium text-foreground hover:bg-secondary"
+                        >
+                          <Crown className="h-3.5 w-3.5" aria-hidden="true" /> Make manager
+                        </button>
+                      )}
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
@@ -111,6 +134,28 @@ export function MembersPage() {
             Cancel
           </button>
           <PrimaryButton onClick={submit}>Add member</PrimaryButton>
+        </div>
+      </Modal>
+
+      <Modal
+        open={transferId != null}
+        title="Transfer manager role"
+        onClose={() => setTransferId(null)}
+      >
+        <p className="mb-4 text-sm leading-relaxed text-muted-foreground">
+          Make <span className="font-medium text-foreground">{transferTarget?.name}</span> the new
+          manager? The current manager will become a regular member. This is useful when the mess
+          manager changes each month.
+        </p>
+        <div className="mt-2 flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={() => setTransferId(null)}
+            className="rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground hover:bg-secondary"
+          >
+            Cancel
+          </button>
+          <PrimaryButton onClick={confirmTransfer}>Confirm transfer</PrimaryButton>
         </div>
       </Modal>
     </>
