@@ -1,15 +1,16 @@
 "use client"
 
 import { useState } from "react"
-import { Plus, Crown } from "lucide-react"
+import { Plus, Crown, Trash2 } from "lucide-react"
 import { useMess } from "@/components/mess-store"
 import { Section, Badge, PrimaryButton, Modal, Field, inputClass } from "@/components/ui-bits"
 import type { Role } from "@/lib/mess-data"
 
 export function MembersPage() {
-  const { members, addMember, transferManager, currentUser } = useMess()
+  const { members, addMember, deleteMember, transferManager, currentUser } = useMess()
   const [open, setOpen] = useState(false)
   const [transferId, setTransferId] = useState<number | null>(null)
+  const [deleteId, setDeleteId] = useState<number | null>(null)
   const [name, setName] = useState("")
   const [room, setRoom] = useState("")
   const [role, setRole] = useState<Role>("member")
@@ -25,9 +26,18 @@ export function MembersPage() {
   }
 
   const transferTarget = members.find((m) => m.id === transferId)
+  const deleteTarget = members.find((m) => m.id === deleteId)
+
   const confirmTransfer = () => {
     if (transferId != null) transferManager(transferId)
     setTransferId(null)
+  }
+
+  const confirmDelete = () => {
+    if (deleteId != null) {
+      deleteMember(deleteId)
+      setDeleteId(null)
+    }
   }
 
   return (
@@ -52,7 +62,7 @@ export function MembersPage() {
                 <th className="px-3 py-3 font-medium">Joined</th>
                 <th className="px-3 py-3 font-medium">Role</th>
                 <th className="px-3 py-3 font-medium">Status</th>
-                {isManager && <th className="px-3 py-3 font-medium">Action</th>}
+                {isManager && <th className="px-3 py-3 font-medium">Actions</th>}
               </tr>
             </thead>
             <tbody>
@@ -82,17 +92,28 @@ export function MembersPage() {
                   </td>
                   {isManager && (
                     <td className="px-3 py-3">
-                      {m.role === "manager" ? (
-                        <span className="text-xs text-muted-foreground">Current manager</span>
-                      ) : (
+                      <div className="flex items-center gap-1.5">
+                        {m.role === "manager" ? (
+                          <span className="text-xs text-muted-foreground">Current manager</span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setTransferId(m.id)}
+                            className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2 py-1 text-xs font-medium text-foreground hover:bg-secondary"
+                            title="Make manager"
+                          >
+                            <Crown className="h-3.5 w-3.5" aria-hidden="true" />
+                          </button>
+                        )}
                         <button
                           type="button"
-                          onClick={() => setTransferId(m.id)}
-                          className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2.5 py-1 text-xs font-medium text-foreground hover:bg-secondary"
+                          onClick={() => setDeleteId(m.id)}
+                          className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2 py-1 text-xs font-medium text-foreground hover:bg-danger hover:text-card"
+                          title="Delete member"
                         >
-                          <Crown className="h-3.5 w-3.5" aria-hidden="true" /> Make manager
+                          <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
                         </button>
-                      )}
+                      </div>
                     </td>
                   )}
                 </tr>
@@ -156,6 +177,33 @@ export function MembersPage() {
             Cancel
           </button>
           <PrimaryButton onClick={confirmTransfer}>Confirm transfer</PrimaryButton>
+        </div>
+      </Modal>
+
+      <Modal
+        open={deleteId != null}
+        title="Delete member"
+        onClose={() => setDeleteId(null)}
+      >
+        <p className="mb-4 text-sm leading-relaxed text-muted-foreground">
+          Are you sure you want to delete <span className="font-medium text-foreground">{deleteTarget?.name}</span>? 
+          This action cannot be undone. All their meal records will also be removed.
+        </p>
+        <div className="mt-4 flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={() => setDeleteId(null)}
+            className="rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground hover:bg-secondary"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={confirmDelete}
+            className="rounded-md border border-danger bg-danger px-3 py-1.5 text-xs font-medium text-card hover:opacity-90"
+          >
+            Delete Member
+          </button>
         </div>
       </Modal>
     </>
