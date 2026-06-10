@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { Plus, ShoppingBag, Receipt, Wallet } from "lucide-react"
+import { Plus, ShoppingBag, Receipt, Wallet, Image as ImageIcon } from "lucide-react"
 import { useMess } from "@/components/mess-store"
 import { Section, Badge, MetricCard, PrimaryButton, Modal, Field, inputClass } from "@/components/ui-bits"
 import {
@@ -21,6 +21,9 @@ export function ExpensesPage() {
   const [kind, setKind] = useState<ExpenseKind>("grocery")
   const [desc, setDesc] = useState("")
   const [amount, setAmount] = useState("")
+  const [date, setDate] = useState("")
+  const [time, setTime] = useState("")
+  const [imageUrl, setImageUrl] = useState("")
   const [buyerId, setBuyerId] = useState<string>("")
   const [category, setCategory] = useState("")
 
@@ -49,11 +52,17 @@ export function ExpensesPage() {
       desc: desc.trim(),
       amount: amt,
       kind,
+      date: date.trim() || "Today",
+      time: time.trim() || "12:00 PM",
+      imageUrl: imageUrl.trim() || undefined,
       buyerId: kind === "grocery" ? Number(buyerId) : undefined,
       category: kind === "bill" ? category.trim() || "General" : undefined,
     })
     setDesc("")
     setAmount("")
+    setDate("")
+    setTime("")
+    setImageUrl("")
     setBuyerId("")
     setCategory("")
     setKind("grocery")
@@ -68,6 +77,17 @@ export function ExpensesPage() {
     setDepAmount("")
     setDepDate("")
     setDepositOpen(false)
+  }
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setImageUrl(reader.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
   }
 
   const buyerName = (id?: number) => members.find((m) => m.id === id)?.name ?? "—"
@@ -157,11 +177,18 @@ export function ExpensesPage() {
                         <>Grocery · bought by {buyerName(e.buyerId)}</>
                       )}
                     </p>
+                    {e.imageUrl && (
+                      <div className="mt-2 flex items-center gap-1.5">
+                        <ImageIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground">Receipt attached</span>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <span className="flex flex-col items-end">
                   <span className="font-medium text-foreground">Tk {e.amount.toLocaleString()}</span>
                   <span className="text-xs text-muted-foreground">{e.date}</span>
+                  <span className="text-xs text-muted-foreground">{e.time}</span>
                 </span>
               </li>
             ))}
@@ -254,6 +281,41 @@ export function ExpensesPage() {
             onChange={(e) => setAmount(e.target.value)}
             placeholder="e.g. 1200"
           />
+        </Field>
+
+        <Field label="Date">
+          <input
+            className={inputClass}
+            type="text"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            placeholder="e.g. 15 Jun"
+          />
+        </Field>
+
+        <Field label="Time">
+          <input
+            className={inputClass}
+            type="text"
+            value={time}
+            onChange={(e) => setTime(e.target.value)}
+            placeholder="e.g. 2:30 PM"
+          />
+        </Field>
+
+        <Field label="Receipt/Bill image (optional)">
+          <label className="flex items-center gap-2 rounded-md border border-dashed border-border bg-card/50 px-3 py-2 cursor-pointer hover:bg-card">
+            <ImageIcon className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+            <span className="text-xs text-muted-foreground">
+              {imageUrl ? "Image attached" : "Click to upload image"}
+            </span>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleImageUpload}
+              className="hidden"
+            />
+          </label>
         </Field>
 
         <p className="mb-2 text-xs text-muted-foreground">
