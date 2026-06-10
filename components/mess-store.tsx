@@ -6,7 +6,6 @@ import {
   type AuthUser,
   type Member,
   type MemberMeals,
-  type ShoppingItem,
   type Notice,
   type Expense,
   type ExpenseKind,
@@ -14,10 +13,10 @@ import {
   type Role,
   initialMembers,
   initialMealData,
-  initialShopping,
   initialNotices,
   initialExpenses,
   initialDeposits,
+  MESS_NAME,
   emptyMonth,
 } from "@/lib/mess-data"
 
@@ -27,6 +26,9 @@ interface NewExpense {
   desc: string
   amount: number
   kind: ExpenseKind
+  date: string
+  time: string
+  imageUrl?: string
   buyerId?: number
   category?: string
 }
@@ -35,19 +37,20 @@ interface MessStore {
   currentUser: AuthUser | null
   login: (username: string, password: string) => boolean
   logout: () => void
+  changePassword: (oldPassword: string, newPassword: string) => boolean
+  updateUserPassword: (username: string, newPassword: string) => void
+
+  messName: string
+  setMessName: (name: string) => void
 
   members: Member[]
   addMember: (name: string, room: string, role: Role) => void
+  deleteMember: (memberId: number) => void
   transferManager: (newManagerId: number) => void
 
   mealData: Record<number, MemberMeals>
   toggleMeal: (memberId: number, dayIdx: number, slot: MealSlot) => void
   setDay: (memberId: number, dayIdx: number, value: boolean) => void
-
-  shopping: ShoppingItem[]
-  addShoppingItem: (name: string) => void
-  toggleShopping: (id: number) => void
-  removeShopping: (id: number) => void
 
   notices: Notice[]
   addNotice: (text: string) => void
@@ -67,13 +70,14 @@ const Ctx = createContext<MessStore | null>(null)
 
 export function MessProvider({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null)
+  const [messName, setMessName] = useState(MESS_NAME)
   const [members, setMembers] = useState<Member[]>(initialMembers)
   const [mealData, setMealData] = useState<Record<number, MemberMeals>>(initialMealData)
-  const [shopping, setShopping] = useState<ShoppingItem[]>(initialShopping)
   const [notices, setNotices] = useState<Notice[]>(initialNotices)
   const [expenses, setExpenses] = useState<Expense[]>(initialExpenses)
   const [deposits, setDeposits] = useState<Deposit[]>(initialDeposits)
   const [toast, setToast] = useState<string | null>(null)
+  const [credentials, setCredentials] = useState(CREDENTIALS)
 
   const showToast = (msg: string) => {
     setToast(msg)
@@ -85,7 +89,7 @@ export function MessProvider({ children }: { children: ReactNode }) {
     return {
       currentUser,
       login: (username, password) => {
-        const entry = CREDENTIALS[username.trim()]
+        const entry = credentials[username.trim()]
         if (entry && entry.password === password.trim()) {
           setCurrentUser({ ...entry.user })
           return true
@@ -93,6 +97,40 @@ export function MessProvider({ children }: { children: ReactNode }) {
         return false
       },
       logout: () => setCurrentUser(null),
+      changePassword: (oldPassword, newPassword) => {
+        if (!currentUser) return false
+        const entry = credentials[currentUser.key]
+        if (!entry || entry.password !== oldPassword.trim()) {
+          showToast("Current password is incorrect")
+          return false
+        }
+        setCredentials((prev) => ({
+          ...prev,
+          [currentUser.key]: {
+            ...prev[currentUser.key],
+            password: newPassword.trim(),
+          },
+        }))
+        showToast("Password changed successfully")
+        return true
+      },
+      updateUserPassword: (username, newPassword) => {
+        setCredentials((prev) => ({
+          ...prev,
+          [username]: {
+            ...prev[username],
+            password: newPassword.trim(),
+          },
+        }))
+      },
+
+      messName,
+      setMessName: (name) => {
+        if (name.trim()) {
+          setMessName(name.trim())
+          showToast("Mess name updated")
+        }
+      },
 
       members,
       addMember: (name, room, role) => {
@@ -103,6 +141,15 @@ export function MessProvider({ children }: { children: ReactNode }) {
         })
         showToast("Member added")
       },
+      deleteMember: (memberId) => {
+        setMembers((prev) => prev.filter((m) => m.id !== memberId))
+        setMealData((prev) => {
+          const newMealData = { ...prev }
+          delete newMealData[memberId]
+          return newMealData
+        })
+        showToast("Member removed")
+      },
       transferManager: (newManagerId) => {
         setMembers((prev) =>
           prev.map((m) => {
@@ -111,7 +158,6 @@ export function MessProvider({ children }: { children: ReactNode }) {
             return m
           }),
         )
-        // Demote current user in session if they handed off the role.
         setCurrentUser((u) => {
           if (u && u.role === "manager" && u.memberId !== newManagerId) {
             return { ...u, role: "member" }
@@ -137,18 +183,6 @@ export function MessProvider({ children }: { children: ReactNode }) {
         })
       },
 
-      shopping,
-      addShoppingItem: (name) => {
-        setShopping((prev) => [...prev, { id: Date.now(), name, done: false }])
-        showToast("Item added")
-      },
-      toggleShopping: (id) =>
-        setShopping((prev) => prev.map((i) => (i.id === id ? { ...i, done: !i.done } : i))),
-      removeShopping: (id) => {
-        setShopping((prev) => prev.filter((i) => i.id !== id))
-        showToast("Item removed")
-      },
-
       notices,
       addNotice: (text) => {
         setNotices((prev) => [{ id: Date.now(), text, author: "Manager", time: "Just now" }, ...prev])
@@ -166,7 +200,9 @@ export function MessProvider({ children }: { children: ReactNode }) {
             id: Date.now(),
             desc: e.desc,
             amount: e.amount,
-            date: "Today",
+            date: e.date || "Today",
+            time: e.time || "12:00 PM",
+            imageUrl: e.imageUrl,
             kind: e.kind,
             buyerId: e.buyerId,
             category: e.category,
@@ -186,7 +222,7 @@ export function MessProvider({ children }: { children: ReactNode }) {
       showToast,
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUser, members, mealData, shopping, notices, expenses, deposits, toast])
+  }, [currentUser, messName, members, mealData, notices, expenses, deposits, toast, credentials])
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
