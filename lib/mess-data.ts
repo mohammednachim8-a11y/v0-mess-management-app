@@ -17,12 +17,6 @@ export interface DayMeals {
 
 export type MemberMeals = DayMeals[]
 
-export interface ShoppingItem {
-  id: number
-  name: string
-  done: boolean
-}
-
 export interface Notice {
   id: number
   text: string
@@ -37,7 +31,9 @@ export interface Expense {
   desc: string
   amount: number
   date: string
+  time: string
   kind: ExpenseKind
+  imageUrl?: string
   // For grocery: which member bought the items.
   buyerId?: number
   // For bills: a label like "Electricity", "Gas", "Water".
@@ -57,10 +53,12 @@ export interface AuthUser {
   role: Role
   initials: string
   memberId: number
+  password?: string
 }
 
 export const DAYS_IN_MONTH = 30
 export const MONTH_LABEL = "June 2025"
+export let MESS_NAME = "Green Villa Mess"
 
 export const CREDENTIALS: Record<string, { password: string; user: AuthUser }> = {
   manager: {
@@ -106,15 +104,6 @@ export const initialMealData: Record<number, MemberMeals> = {
   6: seedMeals(6),
 }
 
-export const initialShopping: ShoppingItem[] = [
-  { id: 1, name: "Rice 10kg", done: false },
-  { id: 2, name: "Lentils 2kg", done: false },
-  { id: 3, name: "Cooking oil 5L", done: true },
-  { id: 4, name: "Onion 3kg", done: false },
-  { id: 5, name: "Potato 4kg", done: true },
-  { id: 6, name: "Tomato 2kg", done: false },
-]
-
 export const initialNotices: Notice[] = [
   { id: 1, text: "Rent due by 5th June. Please pay on time.", author: "Manager", time: "2 days ago" },
   { id: 2, text: "New cook joining from Monday. Welcome Rahim bhai!", author: "Manager", time: "4 days ago" },
@@ -123,11 +112,11 @@ export const initialNotices: Notice[] = [
 ]
 
 export const initialExpenses: Expense[] = [
-  { id: 1, desc: "Rice 10kg, lentils, oil", amount: 2100, date: "3 Jun", kind: "grocery", buyerId: 2 },
-  { id: 2, desc: "Vegetables, fish, chicken", amount: 1980, date: "10 Jun", kind: "grocery", buyerId: 3 },
-  { id: 3, desc: "Gas cylinder refill", amount: 1400, date: "12 Jun", kind: "bill", category: "Gas" },
-  { id: 4, desc: "Beef, spices, onion", amount: 2940, date: "18 Jun", kind: "grocery", buyerId: 1 },
-  { id: 5, desc: "Electricity bill", amount: 1200, date: "20 Jun", kind: "bill", category: "Electricity" },
+  { id: 1, desc: "Rice 10kg, lentils, oil", amount: 2100, date: "3 Jun", time: "10:30 AM", kind: "grocery", buyerId: 2 },
+  { id: 2, desc: "Vegetables, fish, chicken", amount: 1980, date: "10 Jun", time: "02:15 PM", kind: "grocery", buyerId: 3 },
+  { id: 3, desc: "Gas cylinder refill", amount: 1400, date: "12 Jun", time: "11:00 AM", kind: "bill", category: "Gas" },
+  { id: 4, desc: "Beef, spices, onion", amount: 2940, date: "18 Jun", time: "04:45 PM", kind: "grocery", buyerId: 1 },
+  { id: 5, desc: "Electricity bill", amount: 1200, date: "20 Jun", time: "09:00 AM", kind: "bill", category: "Electricity" },
 ]
 
 export const initialDeposits: Deposit[] = [
