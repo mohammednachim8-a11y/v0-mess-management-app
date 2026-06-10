@@ -1,31 +1,22 @@
 "use client"
 
 import { useState } from "react"
-import {
-  LayoutDashboard,
-  Users,
-  CalendarDays,
-  Receipt,
-  ShoppingCart,
-  Bell,
-  LogOut,
-  UtensilsCrossed,
-} from "lucide-react"
+import { LayoutDashboard, Users, CalendarDays, Receipt, Bell, LogOut, Settings, UtensilsCrossed } from "lucide-react"
 import { useMess } from "@/components/mess-store"
 import { Dashboard } from "@/components/dashboard"
 import { MembersPage } from "@/components/members-page"
 import { MealTracker } from "@/components/meal-tracker"
 import { ExpensesPage } from "@/components/expenses-page"
-import { ShoppingPage } from "@/components/shopping-page"
 import { NoticesPage } from "@/components/notices-page"
+import { SettingsPage } from "@/components/settings-page"
 
 const NAV = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
   { id: "members", label: "Members", icon: Users },
   { id: "meals", label: "Meal tracking", icon: CalendarDays },
   { id: "expenses", label: "Expenses", icon: Receipt },
-  { id: "shopping", label: "Shopping list", icon: ShoppingCart },
   { id: "notices", label: "Notice board", icon: Bell },
+  { id: "settings", label: "Settings", icon: Settings },
 ] as const
 
 const TITLES: Record<string, string> = {
@@ -33,12 +24,12 @@ const TITLES: Record<string, string> = {
   members: "Members",
   meals: "Meal tracking",
   expenses: "Expenses",
-  shopping: "Shopping list",
   notices: "Notice board",
+  settings: "Settings",
 }
 
 export function AppShell() {
-  const { currentUser, logout } = useMess()
+  const { currentUser, logout, messName } = useMess()
   const [page, setPage] = useState("dashboard")
 
   return (
@@ -50,7 +41,7 @@ export function AppShell() {
           </span>
           <div>
             <p className="text-sm font-medium text-card-foreground">MessHub</p>
-            <p className="text-xs text-muted-foreground">Green Villa Mess</p>
+            <p className="text-xs text-muted-foreground">{messName}</p>
           </div>
         </div>
 
@@ -141,8 +132,8 @@ export function AppShell() {
           {page === "members" && <MembersPage />}
           {page === "meals" && <MealTracker />}
           {page === "expenses" && <ExpensesPage />}
-          {page === "shopping" && <ShoppingPage />}
           {page === "notices" && <NoticesPage />}
+          {page === "settings" && <SettingsPage />}
         </main>
       </div>
     </div>
